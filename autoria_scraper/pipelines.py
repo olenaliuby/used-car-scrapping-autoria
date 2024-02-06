@@ -25,9 +25,8 @@ class UsedCarsScraperPipeline:
     def process_item(self, item: CarItem, spider: Spider) -> CarItem:
         """Process each item through this pipeline."""
         existing_car = self.session.query(Car).filter_by(url=item.url).first()
-        logging.info(f"Existing car: {existing_car.title}")
 
-        if existing_car:
+        if existing_car is not None:
             existing_car.title = item.title
             existing_car.price_usd = item.price_usd
             existing_car.odometer = item.odometer
@@ -39,6 +38,7 @@ class UsedCarsScraperPipeline:
             existing_car.car_vin = item.car_vin
             existing_car.datetime_found = item.datetime_found
 
+            logging.info(f"Updated existing car: {item.title}")
         else:
             car = Car(
                 url=item.url,
