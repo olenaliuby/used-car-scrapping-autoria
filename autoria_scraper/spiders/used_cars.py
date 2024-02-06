@@ -1,6 +1,5 @@
 import re
 import logging
-import requests
 import sys
 from datetime import datetime
 from typing import Generator
@@ -41,7 +40,7 @@ class UsedCarSpider(scrapy.Spider):
             self.logger.error("Failed to parse total page number.")
             total_pages = 1
 
-        for page_number in range(1, total_pages):
+        for page_number in range(1, total_pages + 1):
             next_page_url = f"https://auto.ria.com/uk/car/used/?page={page_number}"
             yield scrapy.Request(next_page_url, callback=self.parse_page)
 
@@ -61,7 +60,7 @@ class UsedCarSpider(scrapy.Spider):
         """Parse the car details page and return a CarItem."""
         logging.info(f"Parsing car details page: {response.url}")
 
-        return CarItem(
+        car_item = CarItem(
             url=response.url,
             title=response.css("h1.head::text").get(),
             price_usd=int(
@@ -71,7 +70,7 @@ class UsedCarSpider(scrapy.Spider):
             ),
             odometer=self.get_odonometer(response),
             username=self.get_user_name(response),
-            phone_number=self.get_phone_numbers(response),
+            phone_number=None,
             image_url=response.css(
                 "#photosBlock div.photo-620x465 picture img::attr(src)"
             ).get(),
@@ -80,6 +79,21 @@ class UsedCarSpider(scrapy.Spider):
             car_vin=self.get_car_vin(response),
             datetime_found=datetime.now().isoformat(),
         )
+
+        script_tag = response.css('[class^="js-user-secure"]')
+        data_hash = script_tag.xpath("@data-hash").extract_first()
+        data_expires = script_tag.xpath("@data-expires").extract_first()
+        data_auto_id = response.css("body::attr(data-auto-id)").extract_first()
+
+        if data_hash and data_expires:
+            phone_number_url = f"https://auto.ria.com/users/phones/{data_auto_id}/?hash={data_hash}&expires={data_expires}"
+            request = scrapy.Request(
+                phone_number_url, callback=self.parse_phone_numbers
+            )
+            request.meta["car_item"] = car_item
+            yield request
+        else:
+            yield car_item
 
     @staticmethod
     def get_user_name(response: HtmlResponse) -> str | None:
@@ -109,36 +123,23 @@ class UsedCarSpider(scrapy.Spider):
         return 0
 
     @staticmethod
-    def get_phone_numbers(response: scrapy.http.HtmlResponse) -> str | None:
-        """Get phone numbers from the page using the data-hash and data-expires attributes for json request."""
-        script_tag = response.css('[class^="js-user-secure"]')
+    def parse_phone_numbers(response: HtmlResponse) -> CarItem:
+        """Parse the phone number JSON response and add it to the CarItem."""
+        car_item = response.meta["car_item"]
 
-        data_hash = script_tag.xpath("@data-hash").extract_first()
-        data_expires = script_tag.xpath("@data-expires").extract_first()
+        try:
+            phone_data = response.json()
+            phone_numbers = [
+                phone["phoneFormatted"] for phone in phone_data.get("phones", [])
+            ]
+            car_item.phone_number = (
+                ", ".join(phone_numbers) if phone_numbers else "No phone number found"
+            )
+        except Exception as e:
+            logging.error(f"Error processing the phone number response: {e}")
+            car_item.phone_number = "Error fetching phone numbers"
 
-        data_auto_id = response.css("body::attr(data-auto-id)").extract_first()
-
-        if data_hash and data_expires:
-            phone_number_url = f"https://auto.ria.com/users/phones/{data_auto_id}/?hash={data_hash}&expires={data_expires}"
-
-            try:
-                response = requests.get(phone_number_url)
-                response.raise_for_status()
-                phone_data = response.json()
-
-                phone_numbers = [
-                    phone["phoneFormatted"] for phone in phone_data.get("phones", [])
-                ]
-                return (
-                    ", ".join(phone_numbers)
-                    if phone_numbers
-                    else "No phone number found"
-                )
-            except Exception as e:
-                logging.error(f"Error making or processing the request: {e}")
-                return "Error fetching phone numbers"
-
-        return None
+        yield car_item
 
     @staticmethod
     def get_images_count(response: HtmlResponse) -> int:
