@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+  scrapy-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.scrapy
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+  db:
+    image: postgres:14-alpine
+    volumes:
+      - used-car-scrapping-autoria-db:/var/lib/postgresql/data/
+    ports:
+      - "8432:5432"
+    env_file:
+      - .env
+
+volumes:
+  used-car-scrapping-autoria-db:
