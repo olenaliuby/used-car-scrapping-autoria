@@ -30,7 +30,7 @@ async def start_spider():
 
 
 @app.get("/used_cars/", response_model=list[schemas.Car])
-async def list_cars(
+def list_cars(
     skip: int = Query(0, alias="skip"),
     limit: int = Query(10, alias="limit"),
     db: Session = Depends(dependencies.get_db),
