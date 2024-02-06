@@ -31,11 +31,21 @@ Follow these steps to install and run the Used Cars Scraper:
    ```bash
    docker-compose up --build
    ```
-   To stop the services:
+
+4. **The application will be accessible at `localhost:8000`.**
+
+## How to Use Scraper with Docker
+
+1. **Accecess scrapy app container**:
+
    ```bash
-   docker-compose down
+   docker ps
+   docker exec -it <scrapy_container_id> bash
    ```
-   The application will be accessible at `localhost:8000`.
+2. **Run the scraper**:
+   ```bash
+   scrapy crawl used_cars
+   ```
 
 ## API Endpoints
 
@@ -65,6 +75,13 @@ Follow these steps to install and run the Used Cars Scraper:
 - **Docker**: A set of platform-as-a-service products that use OS-level virtualization to deliver software in packages
   called containers.
 - **Swagger**: Interface Description Language for describing RESTful APIs expressed using JSON.
+
+## Future Improvements
+
+- Improve FastAPI with AsyncIO to handle more requests and improve performance.
+- Improve database backup process to store backups in a cloud storage service.
+- Implement data validation for the scraped data to make sure, that we scrape only valid and actual data.
+- Enhance the scraper to scrape more detailed information about the cars.
 
 ## Maintainer
 
