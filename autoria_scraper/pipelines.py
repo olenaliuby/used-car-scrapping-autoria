@@ -38,7 +38,7 @@ class UsedCarsScraperPipeline:
             existing_car.car_number = item.car_number
             existing_car.car_vin = item.car_vin
             existing_car.datetime_found = item.datetime_found
-            logging.info(f"Updated existing car: {existing_car.title}")
+
         else:
             car = Car(
                 url=item.url,
@@ -54,12 +54,11 @@ class UsedCarsScraperPipeline:
                 datetime_found=item.datetime_found,
             )
             self.session.add(car)
-            logging.info(f"Added new car: {car}")
-
+            logging.info(f"Added new car: {item.title}")
         try:
             self.session.commit()
         except Exception as e:
-            logging.error(f"Error in database operation for item {item['url']}: {e}")
+            logging.error(f"Error in database operation for item {item.url}: {e}")
             self.session.rollback()
             raise
 
