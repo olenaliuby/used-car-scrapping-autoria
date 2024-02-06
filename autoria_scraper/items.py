@@ -3,10 +3,25 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/items.html
 
-import scrapy
+import scrapy  # Define here the models for your scraped items
+
+#
+# See documentation in:
+# https://docs.scrapy.org/en/latest/topics/items.html
+
+from dataclasses import dataclass
 
 
-class AutoriaScraperItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+@dataclass
+class CarItem:
+    url: str
+    title: str
+    price_usd: float
+    odometer: int
+    username: str | None
+    phone_number: str | None
+    image_url: str
+    images_count: int
+    car_number: str | None
+    car_vin: str | None
+    datetime_found: str
